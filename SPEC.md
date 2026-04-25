@@ -1,35 +1,42 @@
 # Click Counter — Spec
 
-## Current State
-Nothing exists.
+## Overview
+Single-page toybox click counter app. One big button, one number, satisfying to use.
 
-## Desired State
-A single-page toybox click counter app. One big button, one number, one reset link. Satisfying to use.
+## Design Direction
+Toybox aesthetic. Warm cream background, candy blue button with 3D press effect, bouncy counter animation. Milestone confetti. See `.impeccable.md` for full design context.
 
 ## Phases
 
-### Phase 1 — Core Counter
-- Big candy-colored button with tactile press animation (scale down + shadow shift on click)
+### Phase 1 — Core Counter ✅
+- Big candy-colored button with tactile press animation (scale down + shadow shift)
 - Large bold counter number with bouncy pop/scale animation on each increment
-- Subtle confetti burst or celebration on milestones (10, 50, 100)
-- Small understated reset text link below the button
-- Rounded friendly Google Font
-- Single `index.html`, all CSS and JS inline
+- Subtle confetti burst on milestones (10, 50, 100)
+- Small understated reset text link
+- Single index.html, all CSS/JS inline
 - Mobile-friendly
 
-### Phase 2 — Combo Mode
-- Click speed tracker showing clicks per second in real time
-- Combo multiplier that builds when clicking fast (2x, 3x, 5x) with escalating visual intensity
-- Screen subtly shakes at high combos
-- Combo breaks after ~1 second of no clicking, number deflates back down
-- Small "best combo" counter that persists in the session
+### Phase 2 — Combo Mode ✅
+- Click speed tracker (CPS) — real-time, subtle display
+- Combo multiplier that builds on fast clicking (2x, 3x, 5x, 7x, 10x)
+- Escalating visual intensity: blue glow → orange glow → red glow + screen shake
+- Combo breaks after ~1s of no clicking, deflates smoothly
+- Session best-combo counter
+
+### Phase 3 — Design Sweep (Bubblegum Pop) 🔄
+- Full visual redesign using impeccable skill
+- Direction: Y2K revival — translucent plastics, iridescent highlights, bubbly shapes
+- Think iMac G3, Tamagotchi, jelly sandals
+- Questions and design direction pending approval
 
 ## Success Criteria
-- Button feels tactile (visual press feedback)
+- Button feels tactile
 - Number animates on each click
-- Milestones trigger a small celebration
+- Milestones trigger celebration
+- Combo mode adds fidget-game energy
 - Passes the AI slop test
-- Combo mode adds genuine fidget-game energy
 
-## Risks
-None — this is a toy.
+## Decisions Log
+- Phase 1: approved, button changed from coral to blue per Pan's request
+- Phase 2: approved as-is
+- Phase 3: Bubblegum Pop direction chosen from 5 options, design questions in progress
