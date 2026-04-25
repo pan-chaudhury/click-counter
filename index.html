@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Click Counter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #FFF5EB;
+    font-family: 'Nunito', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  canvas#confetti {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .counter {
+    font-size: clamp(4.5rem, 15vw, 9rem);
+    font-weight: 900;
+    color: #2D2A26;
+    line-height: 1;
+    margin-bottom: 2.5rem;
+    transition: transform 0.25s cubic-bezier(0.22, 0, 0.36, 1), opacity 0.25s cubic-bezier(0.22, 0, 0.36, 1);
+    will-change: transform;
+  }
+
+  .counter.pop {
+    transform: scale(1.18);
+  }
+
+  .btn-click {
+    appearance: none;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: #4A90FF;
+    color: #FFF5EB;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1.3rem, 4vw, 1.7rem);
+    letter-spacing: 0.02em;
+    padding: 1.15em 2.8em;
+    border-radius: 1em;
+    box-shadow:
+      0 6px 0 0 #2A5DC2,
+      0 8px 20px rgba(74, 144, 255, 0.30);
+    transition:
+      transform 0.15s cubic-bezier(0.22, 0, 0.36, 1),
+      box-shadow 0.15s cubic-bezier(0.22, 0, 0.36, 1),
+      background 0.12s ease-out;
+    position: relative;
+    z-index: 2;
+  }
+
+  .btn-click:hover {
+    background: #3A7EF0;
+  }
+
+  .btn-click:active,
+  .btn-click.pressed {
+    background: #2E6BD6;
+    transform: translateY(4px) scale(0.97);
+    box-shadow:
+      0 2px 0 0 #1E4FA0,
+      0 3px 10px rgba(74, 144, 255, 0.20);
+  }
+
+  .reset {
+    margin-top: 1.8rem;
+    background: none;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #A39E98;
+    letter-spacing: 0.03em;
+    padding: 0.4em 0.8em;
+    border-radius: 0.5em;
+    transition: color 0.2s ease-out;
+  }
+
+  .reset:hover {
+    color: #7A756F;
+  }
+
+  /* subtle dot pattern on bg for texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle, #F0DCC8 0.8px, transparent 0.8px);
+    background-size: 28px 28px;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .counter, .btn-click, .reset, .combo-zone {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Phase 2: Combo Mode */
+  .combo-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.2rem;
+    min-height: 3.5rem;
+  }
+
+  .combo-multiplier {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #4A90FF;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out, color 0.4s ease-out, text-shadow 0.4s ease-out, font-size 0.3s ease-out;
+    will-change: transform, opacity;
+    line-height: 1.2;
+  }
+
+  .combo-multiplier.active {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .combo-multiplier.breaking {
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  }
+
+  .cps-display {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #B8B0A6;
+    letter-spacing: 0.04em;
+    margin-top: 0.25rem;
+    transition: color 0.3s ease-out;
+  }
+
+  .best-combo {
+    position: fixed;
+    top: 1.2rem;
+    right: 1.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #C4BBB2;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.4s ease-out, color 0.3s ease-out;
+  }
+
+  .best-combo.visible {
+    opacity: 1;
+  }
+
+  /* Screen shake */
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-1px, 0.5px); }
+    30% { transform: translate(1px, -0.5px); }
+    50% { transform: translate(-0.5px, 1px); }
+    70% { transform: translate(1px, 0.5px); }
+    90% { transform: translate(-1px, -0.5px); }
+  }
+
+  body.shaking {
+    animation: shake 0.15s ease-out;
+  }
+</style>
+</head>
+<body>
+
+<div class="combo-zone">
+  <div class="combo-multiplier" id="comboMultiplier">2x</div>
+  <div class="cps-display" id="cpsDisplay">0.0 cps</div>
+</div>
+<div class="counter" id="counter">0</div>
+<button class="btn-click" id="clickBtn">Click me!</button>
+<button class="reset" id="resetBtn">reset</button>
+<div class="best-combo" id="bestCombo">Best: 1x</div>
+<canvas id="confetti"></canvas>
+
+<script>
+(function() {
+  let count = 0;
+  const counterEl = document.getElementById('counter');
+  const clickBtn = document.getElementById('clickBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+
+  // Canvas sizing
+  function resizeCanvas() {
+    canvas.width = window.innerWidth * devicePixelRatio;
+    canvas.height = window.innerHeight * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // Confetti system
+  const particles = [];
+  const CONFETTI_COLORS = ['#FF6B4A', '#FFB347', '#FF8C6B', '#FFDAB3', '#E54D2E', '#FFC285', '#FF9A76'];
+
+  function spawnConfetti(x, y, amount) {
+    for (let i = 0; i < amount; i++) {
+      const angle = (Math.PI * 2 * i / amount) + (Math.random() - 0.5) * 0.6;
+      const speed = 3 + Math.random() * 5;
+      const size = 4 + Math.random() * 5;
+      particles.push({
+        x: x,
+        y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 4 - Math.random() * 3,
+        size: size,
+        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+        life: 1,
+        decay: 0.012 + Math.random() * 0.008,
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.15,
+        shape: Math.random() > 0.5 ? 'circle' : 'square'
+      });
+    }
+  }
+
+  let animating = false;
+  function animateParticles() {
+    ctx.clearRect(0, 0, canvas.width / devicePixelRatio, canvas.height / devicePixelRatio);
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.18; // gravity
+      p.vx *= 0.985;
+      p.life -= p.decay;
+      p.rotation += p.rotSpeed;
+
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+        continue;
+      }
+
+      ctx.save();
+      ctx.globalAlpha = p.life;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation);
+      ctx.fillStyle = p.color;
+
+      if (p.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      }
+      ctx.restore();
+    }
+
+    if (particles.length > 0) {
+      requestAnimationFrame(animateParticles);
+    } else {
+      animating = false;
+      ctx.clearRect(0, 0, canvas.width / devicePixelRatio, canvas.height / devicePixelRatio);
+    }
+  }
+
+  function triggerConfetti() {
+    const rect = clickBtn.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let amount = 25;
+    if (count >= 100) amount = 50;
+    else if (count >= 50) amount = 40;
+    spawnConfetti(cx, cy, amount);
+    if (!animating) {
+      animating = true;
+      animateParticles();
+    }
+  }
+
+  const milestones = new Set([10, 50, 100, 200, 500, 1000]);
+
+  // Click handler
+  clickBtn.addEventListener('click', function() {
+    count++;
+    counterEl.textContent = count;
+
+    // Pop animation
+    counterEl.classList.remove('pop');
+    void counterEl.offsetWidth; // reflow
+    counterEl.classList.add('pop');
+
+    if (milestones.has(count)) {
+      triggerConfetti();
+    }
+  });
+
+  // Remove pop class after animation
+  counterEl.addEventListener('transitionend', function() {
+    counterEl.classList.remove('pop');
+  });
+
+  // Reset
+  resetBtn.addEventListener('click', function() {
+    count = 0;
+    counterEl.textContent = '0';
+    // Reset combo on counter reset
+    clickTimestamps = [];
+    currentCPS = 0;
+    currentCombo = 1;
+    updateComboDisplay();
+    cpsEl.textContent = '0.0 cps';
+  });
+
+  // ===== Phase 2: Combo Mode =====
+  const comboEl = document.getElementById('comboMultiplier');
+  const cpsEl = document.getElementById('cpsDisplay');
+  const bestComboEl = document.getElementById('bestCombo');
+
+  let clickTimestamps = [];
+  let currentCPS = 0;
+  let currentCombo = 1;
+  let bestCombo = 1;
+  let comboTimeout = null;
+  let cpsInterval = null;
+
+  function getCPS() {
+    const now = performance.now();
+    // Keep only clicks within the last 2 seconds
+    clickTimestamps = clickTimestamps.filter(t => now - t < 2000);
+    if (clickTimestamps.length < 2) return clickTimestamps.length > 0 ? clickTimestamps.length : 0;
+    // Calculate CPS based on time span of recent clicks
+    const span = (now - clickTimestamps[0]) / 1000;
+    if (span === 0) return 0;
+    return (clickTimestamps.length - 1) / span;
+  }
+
+  function getComboMultiplier(cps) {
+    if (cps >= 12) return 10;
+    if (cps >= 9) return 7;
+    if (cps >= 7) return 5;
+    if (cps >= 5) return 3;
+    if (cps >= 3) return 2;
+    return 1;
+  }
+
+  function updateComboDisplay() {
+    const combo = currentCombo;
+
+    if (combo <= 1) {
+      comboEl.classList.remove('active');
+      comboEl.classList.add('breaking');
+      return;
+    }
+
+    comboEl.classList.remove('breaking');
+    comboEl.classList.add('active');
+    comboEl.textContent = combo + 'x';
+
+    // Escalating visual intensity
+    if (combo >= 10) {
+      // High: intense warm glow, larger
+      comboEl.style.color = '#E54D2E';
+      comboEl.style.fontSize = '2.4rem';
+      comboEl.style.textShadow = '0 0 18px rgba(229, 77, 46, 0.5), 0 0 40px rgba(229, 77, 46, 0.25)';
+      // Trigger screen shake
+      document.body.classList.remove('shaking');
+      void document.body.offsetWidth;
+      document.body.classList.add('shaking');
+    } else if (combo >= 5) {
+      // Medium: warm orange glow
+      comboEl.style.color = '#FF8C42';
+      comboEl.style.fontSize = '2rem';
+      comboEl.style.textShadow = '0 0 12px rgba(255, 140, 66, 0.4), 0 0 24px rgba(255, 140, 66, 0.15)';
+      document.body.classList.remove('shaking');
+    } else {
+      // Low: subtle blue glow
+      comboEl.style.color = '#4A90FF';
+      comboEl.style.fontSize = '1.6rem';
+      comboEl.style.textShadow = '0 0 8px rgba(74, 144, 255, 0.3)';
+      document.body.classList.remove('shaking');
+    }
+
+    // Update best combo
+    if (combo > bestCombo) {
+      bestCombo = combo;
+      bestComboEl.textContent = 'Best: ' + bestCombo + 'x';
+    }
+    if (bestCombo > 1) {
+      bestComboEl.classList.add('visible');
+    }
+  }
+
+  function onComboClick() {
+    clickTimestamps.push(performance.now());
+    currentCPS = getCPS();
+    currentCombo = getComboMultiplier(currentCPS);
+    updateComboDisplay();
+
+    // Reset combo break timer
+    clearTimeout(comboTimeout);
+    comboTimeout = setTimeout(function() {
+      currentCombo = 1;
+      currentCPS = 0;
+      clickTimestamps = [];
+      updateComboDisplay();
+      cpsEl.textContent = '0.0 cps';
+    }, 1000);
+  }
+
+  // CPS display updater (smooth real-time update)
+  cpsInterval = setInterval(function() {
+    if (clickTimestamps.length > 0) {
+      currentCPS = getCPS();
+      cpsEl.textContent = currentCPS.toFixed(1) + ' cps';
+      // Subtly color CPS when active
+      if (currentCPS >= 3) {
+        cpsEl.style.color = '#9B958E';
+      } else {
+        cpsEl.style.color = '#B8B0A6';
+      }
+    }
+  }, 100);
+
+  // Hook into click
+  clickBtn.addEventListener('click', onComboClick);
+
+  // Clean up shake animation
+  document.body.addEventListener('animationend', function() {
+    document.body.classList.remove('shaking');
+  });
+})();
+</script>
+</body>
+</html>
